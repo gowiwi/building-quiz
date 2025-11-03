@@ -438,7 +438,13 @@
             </div>
         </div>
 
-        <div class="question" id="question">「新しい問題」をクリックして開始！</div>
+        <div class="question" id="question">「ゲーム開始」をクリックして10問チャレンジ！</div>
+        
+        <div style="text-align: center; margin: 10px 0;">
+            <div style="display: inline-block; background: #3498db; color: white; padding: 10px 20px; border-radius: 20px; font-size: 1.2em; font-weight: bold;" id="questionCounter">
+                -- / 10
+            </div>
+        </div>
         
         <div class="message" id="message"></div>
 
@@ -451,8 +457,26 @@
         </div>
 
         <div class="buttons">
-            <button onclick="newQuestion()">新しい問題</button>
+            <button id="startBtn" onclick="startGame()">ゲーム開始</button>
+            <button id="nextBtn" onclick="nextQuestion()" style="display: none;">次の問題</button>
             <button onclick="resetScore()">スコアリセット</button>
+        </div>
+        
+        <!-- 結果表示モーダル -->
+        <div id="resultModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 1000; align-items: center; justify-content: center;">
+            <div style="background: white; padding: 30px; border-radius: 20px; max-width: 500px; width: 90%; text-align: center;">
+                <h2 style="color: #333; margin-bottom: 20px;">🎉 ゲーム終了！</h2>
+                <div style="font-size: 1.5em; margin: 20px 0;">
+                    <div style="color: #27ae60; margin: 10px 0;">✅ 正解: <span id="finalCorrect">0</span>問</div>
+                    <div style="color: #e74c3c; margin: 10px 0;">❌ 不正解: <span id="finalWrong">0</span>問</div>
+                    <div style="font-size: 2em; font-weight: bold; color: #3498db; margin: 20px 0;">
+                        正解率: <span id="finalRate">0</span>%
+                    </div>
+                </div>
+                <div id="resultMessage" style="font-size: 1.3em; font-weight: bold; margin: 20px 0;"></div>
+                <button onclick="closeResult()" style="background: #3498db; color: white; border: none; padding: 15px 30px; font-size: 1.2em; border-radius: 25px; cursor: pointer; margin: 10px;">閉じる</button>
+                <button onclick="restartGame()" style="background: #27ae60; color: white; border: none; padding: 15px 30px; font-size: 1.2em; border-radius: 25px; cursor: pointer; margin: 10px;">もう一度</button>
+            </div>
         </div>
     </div>
 
@@ -477,6 +501,13 @@
         let isQuestionActive = false;
         let timer = null;
         let timeRemaining = 0;
+        
+        // 10問セット用の変数
+        let currentQuestionNumber = 0;
+        let totalQuestions = 10;
+        let gameActive = false;
+        let sessionCorrect = 0;
+        let sessionWrong = 0;
 
         // 難易度に応じてグリッド設定を更新
         function updateGridSettings() {
@@ -596,6 +627,7 @@
             if (!isQuestionActive) return;
             
             wrongCount++;
+            sessionWrong++;
             document.getElementById('message').innerHTML = 
                 '<span class="error">⏰ 時間切れです！正解は「' + 
                 currentAnswer.col + currentAnswer.row + '」でした。</span>';
@@ -610,14 +642,41 @@
             
             updateScore();
             isQuestionActive = false;
+            
+            // 次の問題ボタンを有効化
+            if (gameActive) {
+                document.getElementById('nextBtn').disabled = false;
+                document.getElementById('nextBtn').style.opacity = '1';
+            }
         }
 
-        // 新しい問題を生成
-        function newQuestion() {
+        // ゲーム開始
+        function startGame() {
+            gameActive = true;
+            currentQuestionNumber = 0;
+            sessionCorrect = 0;
+            sessionWrong = 0;
+            
+            document.getElementById('startBtn').style.display = 'none';
+            document.getElementById('nextBtn').style.display = 'inline-block';
+            
+            nextQuestion();
+        }
+        
+        // 次の問題へ
+        function nextQuestion() {
+            if (currentQuestionNumber >= totalQuestions) {
+                showResult();
+                return;
+            }
+            
             if (isQuestionActive) {
                 clearPreviousAnswer();
                 stopTimer();
             }
+            
+            currentQuestionNumber++;
+            updateQuestionCounter();
 
             const randomCol = iroha[Math.floor(Math.random() * iroha.length)];
             const randomRow = numbers[Math.floor(Math.random() * numbers.length)];
@@ -626,16 +685,69 @@
             
             document.getElementById('question').textContent = `「${randomCol}${randomRow}」はどこ？`;
             document.getElementById('message').textContent = '';
+            document.getElementById('nextBtn').disabled = true;
+            document.getElementById('nextBtn').style.opacity = '0.5';
             
             isQuestionActive = true;
             startTimer();
+        }
+        
+        // 問題番号を更新
+        function updateQuestionCounter() {
+            document.getElementById('questionCounter').textContent = `${currentQuestionNumber} / ${totalQuestions}`;
+        }
+        
+        // 結果表示
+        function showResult() {
+            gameActive = false;
+            isQuestionActive = false;
+            stopTimer();
+            
+            const rate = Math.round((sessionCorrect / totalQuestions) * 100);
+            
+            document.getElementById('finalCorrect').textContent = sessionCorrect;
+            document.getElementById('finalWrong').textContent = sessionWrong;
+            document.getElementById('finalRate').textContent = rate;
+            
+            // 評価メッセージ
+            let message = '';
+            if (rate === 100) {
+                message = '🏆 パーフェクト！素晴らしい！';
+            } else if (rate >= 80) {
+                message = '🌟 すごい！よくできました！';
+            } else if (rate >= 60) {
+                message = '👍 いい感じです！';
+            } else if (rate >= 40) {
+                message = '💪 もう少し！頑張りましょう！';
+            } else {
+                message = '📚 練習あるのみ！';
+            }
+            document.getElementById('resultMessage').textContent = message;
+            
+            document.getElementById('resultModal').style.display = 'flex';
+        }
+        
+        // 結果を閉じる
+        function closeResult() {
+            document.getElementById('resultModal').style.display = 'none';
+            document.getElementById('startBtn').style.display = 'inline-block';
+            document.getElementById('nextBtn').style.display = 'none';
+            document.getElementById('question').textContent = '「ゲーム開始」をクリックして10問チャレンジ！';
+            document.getElementById('questionCounter').textContent = '-- / 10';
+            clearPreviousAnswer();
+        }
+        
+        // もう一度プレイ
+        function restartGame() {
+            closeResult();
+            startGame();
         }
 
         // セルクリックの処理
         function handleCellClick(col, row, cellElement) {
             if (!isQuestionActive) {
                 document.getElementById('message').innerHTML = 
-                    '<span class="error">まず「新しい問題」をクリックしてください！</span>';
+                    '<span class="error">まず「ゲーム開始」をクリックしてください！</span>';
                 return;
             }
 
@@ -646,6 +758,7 @@
                 // 正解
                 cellElement.classList.add('correct');
                 correctCount++;
+                sessionCorrect++;
                 const difficulty = difficulties[currentDifficulty];
                 let message = '🎉 正解です！';
                 if (difficulty.timeLimit > 0) {
@@ -658,6 +771,7 @@
                 // 不正解
                 cellElement.classList.add('wrong');
                 wrongCount++;
+                sessionWrong++;
                 document.getElementById('message').innerHTML = 
                     '<span class="error">❌ 不正解です。正解は「' + 
                     currentAnswer.col + currentAnswer.row + '」です。</span>';
@@ -675,6 +789,12 @@
 
             updateScore();
             isQuestionActive = false;
+            
+            // 次の問題ボタンを有効化
+            if (gameActive) {
+                document.getElementById('nextBtn').disabled = false;
+                document.getElementById('nextBtn').style.opacity = '1';
+            }
         }
 
         // 前の回答をクリア
@@ -718,11 +838,18 @@
             correctCount = 0;
             wrongCount = 0;
             isQuestionActive = false;
+            gameActive = false;
+            currentQuestionNumber = 0;
+            sessionCorrect = 0;
+            sessionWrong = 0;
             stopTimer();
             updateScore();
             clearPreviousAnswer();
-            document.getElementById('question').textContent = '「新しい問題」をクリックして開始！';
+            document.getElementById('question').textContent = '「ゲーム開始」をクリックして10問チャレンジ！';
             document.getElementById('message').textContent = '';
+            document.getElementById('questionCounter').textContent = '-- / 10';
+            document.getElementById('startBtn').style.display = 'inline-block';
+            document.getElementById('nextBtn').style.display = 'none';
             
             // タイマー表示リセット
             const timerElement = document.getElementById('timer');
