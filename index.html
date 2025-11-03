@@ -1,0 +1,751 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>建築番付クイズゲーム</title>
+    <style>
+        body {
+            font-family: 'Hiragino Sans', 'Yu Gothic', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            margin: 0;
+            padding: 10px;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .container {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            max-width: 800px;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 15px;
+                border-radius: 10px;
+            }
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 2.5em;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
+        }
+
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 1.8em;
+                margin-bottom: 15px;
+            }
+        }
+
+        .game-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 10px;
+        }
+
+        @media (max-width: 768px) {
+            .game-info {
+                padding: 10px;
+                margin-bottom: 15px;
+            }
+        }
+
+        .question {
+            font-size: 2em;
+            font-weight: bold;
+            color: #e74c3c;
+            text-align: center;
+            margin: 15px 0;
+            padding: 15px;
+            background: #fff3cd;
+            border: 2px solid #ffeaa7;
+            border-radius: 10px;
+        }
+
+        @media (max-width: 768px) {
+            .question {
+                font-size: 1.5em;
+                padding: 12px;
+                margin: 10px 0;
+            }
+        }
+
+        .grid-container {
+            display: inline-block;
+            border: 3px solid #333;
+            border-radius: 10px;
+            overflow: auto;
+            margin: 15px auto;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            max-width: 100%;
+        }
+
+        @media (max-width: 768px) {
+            .grid-container {
+                border: 2px solid #333;
+                border-radius: 8px;
+                margin: 10px auto;
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
+            }
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: 50px repeat(10, 60px);
+            grid-template-rows: 50px repeat(10, 60px);
+            gap: 1px;
+            background: #ddd;
+        }
+
+        .cell {
+            background: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            border: 1px solid #eee;
+            touch-action: manipulation;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        .header {
+            background: #34495e;
+            color: white;
+            cursor: default;
+            font-size: 1.2em;
+        }
+
+        @media (hover: hover) {
+            .cell:not(.header):hover {
+                background: #e3f2fd;
+                transform: scale(1.05);
+            }
+        }
+
+        .cell:not(.header):active {
+            background: #e3f2fd;
+            transform: scale(0.95);
+        }
+
+        .cell.correct {
+            background: #4caf50 !important;
+            color: white;
+            animation: pulse 0.5s ease-in-out;
+        }
+
+        .cell.wrong {
+            background: #f44336 !important;
+            color: white;
+            animation: shake 0.5s ease-in-out;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            75% { transform: translateX(5px); }
+        }
+
+        .buttons {
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        @media (max-width: 768px) {
+            .buttons {
+                margin-top: 15px;
+            }
+        }
+
+        button {
+            background: #3498db;
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            font-size: 1.1em;
+            border-radius: 25px;
+            cursor: pointer;
+            margin: 0 10px;
+            transition: all 0.3s ease;
+            touch-action: manipulation;
+        }
+
+        @media (max-width: 768px) {
+            button {
+                padding: 12px 20px;
+                font-size: 1em;
+                margin: 5px;
+            }
+        }
+
+        button:hover {
+            background: #2980b9;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+
+        .score {
+            font-size: 1.2em;
+            font-weight: bold;
+        }
+
+        @media (max-width: 768px) {
+            .score {
+                font-size: 1em;
+            }
+        }
+
+        .correct-score {
+            color: #27ae60;
+        }
+
+        .wrong-score {
+            color: #e74c3c;
+        }
+
+        .message {
+            text-align: center;
+            margin: 15px 0;
+            font-size: 1.3em;
+            font-weight: bold;
+            min-height: 30px;
+        }
+
+        @media (max-width: 768px) {
+            .message {
+                font-size: 1.1em;
+                margin: 10px 0;
+                min-height: 25px;
+            }
+        }
+
+        .success {
+            color: #27ae60;
+        }
+
+        .error {
+            color: #e74c3c;
+        }
+
+        .instructions {
+            background: #e8f4fd;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 15px;
+            font-size: 1.1em;
+            line-height: 1.6;
+        }
+
+        @media (max-width: 768px) {
+            .instructions {
+                padding: 12px;
+                font-size: 0.9em;
+                line-height: 1.5;
+            }
+        }
+
+        .difficulty-timer {
+            display: flex;
+            justify-content: space-between;
+            align-items: stretch;
+            margin-bottom: 20px;
+            gap: 10px;
+        }
+
+        @media (max-width: 768px) {
+            .difficulty-timer {
+                flex-direction: column;
+                gap: 10px;
+            }
+        }
+
+        .difficulty-section, .timer-section {
+            background: #f8f9fa;
+            padding: 12px;
+            border-radius: 10px;
+            flex: 1;
+        }
+
+        @media (max-width: 768px) {
+            .difficulty-section, .timer-section {
+                padding: 10px;
+            }
+        }
+
+        .difficulty-section h3, .timer-section h3 {
+            margin: 0 0 10px 0;
+            font-size: 1.1em;
+            color: #333;
+        }
+
+        @media (max-width: 768px) {
+            .difficulty-section h3, .timer-section h3 {
+                font-size: 1em;
+                margin-bottom: 8px;
+            }
+        }
+
+        .difficulty-buttons {
+            display: flex;
+            gap: 5px;
+            flex-wrap: wrap;
+        }
+
+        .difficulty-btn {
+            padding: 8px 15px;
+            font-size: 0.9em;
+            border-radius: 20px;
+            border: 2px solid #3498db;
+            background: white;
+            color: #3498db;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            touch-action: manipulation;
+        }
+
+        @media (max-width: 768px) {
+            .difficulty-btn {
+                padding: 10px 12px;
+                font-size: 0.85em;
+            }
+        }
+
+        .difficulty-btn.active {
+            background: #3498db;
+            color: white;
+        }
+
+        .difficulty-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+        }
+
+        .timer-display {
+            font-size: 2em;
+            font-weight: bold;
+            text-align: center;
+            padding: 10px;
+            background: white;
+            border-radius: 10px;
+            border: 2px solid #ddd;
+            min-width: 100px;
+        }
+
+        @media (max-width: 768px) {
+            .timer-display {
+                font-size: 1.5em;
+                padding: 8px;
+                min-width: 80px;
+            }
+        }
+
+        .timer-running {
+            color: #e74c3c;
+            border-color: #e74c3c;
+            animation: timerPulse 1s infinite alternate;
+        }
+
+        @keyframes timerPulse {
+            0% { transform: scale(1); }
+            100% { transform: scale(1.05); }
+        }
+
+        .timer-warning {
+            color: #f39c12 !important;
+            border-color: #f39c12 !important;
+        }
+
+        .timer-danger {
+            color: #e74c3c !important;
+            border-color: #e74c3c !important;
+            animation: timerDanger 0.5s infinite alternate !important;
+        }
+
+        @keyframes timerDanger {
+            0% { background: white; }
+            100% { background: #ffebee; }
+        }
+
+        .difficulty-info {
+            font-size: 0.9em;
+            color: #666;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🏗️ 建築番付クイズゲーム</h1>
+        
+        <div class="instructions">
+            <strong>遊び方：</strong><br>
+            表示された座標（例：「い3」）がグリッドのどこにあるかクリックしてください。<br>
+            横軸：いろはにほへとちりぬるを…（いろは歌）<br>
+            縦軸：1, 2, 3, 4, 5…
+        </div>
+
+        <div class="difficulty-timer">
+            <div class="difficulty-section">
+                <h3>🎯 難易度選択</h3>
+                <div class="difficulty-buttons">
+                    <button class="difficulty-btn active" onclick="setDifficulty('easy')">初級</button>
+                    <button class="difficulty-btn" onclick="setDifficulty('normal')">中級</button>
+                    <button class="difficulty-btn" onclick="setDifficulty('hard')">上級</button>
+                    <button class="difficulty-btn" onclick="setDifficulty('expert')">超級</button>
+                </div>
+                <div class="difficulty-info" id="difficultyInfo">グリッド: 10×10, 制限時間: なし</div>
+            </div>
+            <div class="timer-section">
+                <h3>⏱️ タイマー</h3>
+                <div class="timer-display" id="timer">--:--</div>
+            </div>
+        </div>
+
+        <div class="game-info">
+            <div class="score">
+                正解: <span class="correct-score" id="correct">0</span>
+            </div>
+            <div class="score">
+                不正解: <span class="wrong-score" id="wrong">0</span>
+            </div>
+            <div class="score">
+                正解率: <span id="rate">0%</span>
+            </div>
+        </div>
+
+        <div class="question" id="question">「新しい問題」をクリックして開始！</div>
+        
+        <div class="message" id="message"></div>
+
+        <div style="text-align: center;">
+            <div class="grid-container">
+                <div class="grid" id="grid">
+                    <!-- グリッドはJavaScriptで生成 -->
+                </div>
+            </div>
+        </div>
+
+        <div class="buttons">
+            <button onclick="newQuestion()">新しい問題</button>
+            <button onclick="resetScore()">スコアリセット</button>
+        </div>
+    </div>
+
+    <script>
+        // いろは歌の文字（完全版）
+        const irohaFull = ['い', 'ろ', 'は', 'に', 'ほ', 'へ', 'と', 'ち', 'り', 'ぬ', 'る', 'を', 'わ', 'か', 'よ', 'た', 'れ', 'そ', 'つ', 'ね'];
+        
+        // 難易度設定
+        const difficulties = {
+            easy: { gridSize: 10, timeLimit: 0, name: '初級', info: 'グリッド: 10×10, 制限時間: なし' },
+            normal: { gridSize: 15, timeLimit: 15, name: '中級', info: 'グリッド: 15×15, 制限時間: 15秒' },
+            hard: { gridSize: 20, timeLimit: 10, name: '上級', info: 'グリッド: 20×20, 制限時間: 10秒' },
+            expert: { gridSize: 20, timeLimit: 5, name: '超級', info: 'グリッド: 20×20, 制限時間: 5秒' }
+        };
+        
+        let currentDifficulty = 'easy';
+        let iroha = [];
+        let numbers = [];
+        let currentAnswer = null;
+        let correctCount = 0;
+        let wrongCount = 0;
+        let isQuestionActive = false;
+        let timer = null;
+        let timeRemaining = 0;
+
+        // 難易度に応じてグリッド設定を更新
+        function updateGridSettings() {
+            const difficulty = difficulties[currentDifficulty];
+            const gridSize = difficulty.gridSize;
+            
+            iroha = irohaFull.slice(0, gridSize);
+            numbers = Array.from({length: gridSize}, (_, i) => i + 1);
+            
+            // グリッドのCSS調整（スマホ対応）
+            const grid = document.getElementById('grid');
+            const isMobile = window.innerWidth <= 768;
+            
+            let cellSize, headerSize;
+            if (isMobile) {
+                cellSize = gridSize <= 10 ? 35 : gridSize <= 15 ? 28 : 22;
+                headerSize = gridSize <= 10 ? 30 : gridSize <= 15 ? 25 : 22;
+            } else {
+                cellSize = gridSize <= 10 ? 60 : gridSize <= 15 ? 45 : 35;
+                headerSize = gridSize <= 10 ? 50 : gridSize <= 15 ? 40 : 35;
+            }
+            
+            grid.style.gridTemplateColumns = `${headerSize}px repeat(${gridSize}, ${cellSize}px)`;
+            grid.style.gridTemplateRows = `${headerSize}px repeat(${gridSize}, ${cellSize}px)`;
+        }
+
+        // グリッドを生成
+        function createGrid() {
+            updateGridSettings();
+            
+            const grid = document.getElementById('grid');
+            grid.innerHTML = '';
+
+            // 左上の空白セル
+            const emptyCell = document.createElement('div');
+            emptyCell.className = 'cell header';
+            grid.appendChild(emptyCell);
+
+            // 横軸のヘッダー（いろは）
+            iroha.forEach(char => {
+                const cell = document.createElement('div');
+                cell.className = 'cell header';
+                cell.textContent = char;
+                grid.appendChild(cell);
+            });
+
+            // 縦軸のヘッダーとグリッドセル
+            numbers.forEach(num => {
+                // 縦軸のヘッダー（数字）
+                const headerCell = document.createElement('div');
+                headerCell.className = 'cell header';
+                headerCell.textContent = num;
+                grid.appendChild(headerCell);
+
+                // グリッドセル
+                iroha.forEach((char, colIndex) => {
+                    const cell = document.createElement('div');
+                    cell.className = 'cell';
+                    cell.dataset.row = num;
+                    cell.dataset.col = char;
+                    cell.addEventListener('click', () => handleCellClick(char, num, cell));
+                    grid.appendChild(cell);
+                });
+            });
+        }
+
+        // タイマー関連の関数
+        function startTimer() {
+            const difficulty = difficulties[currentDifficulty];
+            if (difficulty.timeLimit === 0) return;
+            
+            timeRemaining = difficulty.timeLimit;
+            updateTimerDisplay();
+            
+            timer = setInterval(() => {
+                timeRemaining--;
+                updateTimerDisplay();
+                
+                if (timeRemaining <= 0) {
+                    clearInterval(timer);
+                    handleTimeUp();
+                }
+            }, 1000);
+        }
+        
+        function stopTimer() {
+            if (timer) {
+                clearInterval(timer);
+                timer = null;
+            }
+        }
+        
+        function updateTimerDisplay() {
+            const timerElement = document.getElementById('timer');
+            const difficulty = difficulties[currentDifficulty];
+            
+            if (difficulty.timeLimit === 0) {
+                timerElement.textContent = '--:--';
+                timerElement.className = 'timer-display';
+                return;
+            }
+            
+            const minutes = Math.floor(timeRemaining / 60);
+            const seconds = timeRemaining % 60;
+            timerElement.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+            
+            // タイマーの色を時間に応じて変更
+            timerElement.className = 'timer-display timer-running';
+            if (timeRemaining <= difficulty.timeLimit * 0.3) {
+                timerElement.classList.add('timer-danger');
+            } else if (timeRemaining <= difficulty.timeLimit * 0.5) {
+                timerElement.classList.add('timer-warning');
+            }
+        }
+        
+        function handleTimeUp() {
+            if (!isQuestionActive) return;
+            
+            wrongCount++;
+            document.getElementById('message').innerHTML = 
+                '<span class="error">⏰ 時間切れです！正解は「' + 
+                currentAnswer.col + currentAnswer.row + '」でした。</span>';
+            
+            // 正解のセルを表示
+            const correctCell = document.querySelector(
+                `[data-col="${currentAnswer.col}"][data-row="${currentAnswer.row}"]`
+            );
+            if (correctCell) {
+                correctCell.classList.add('correct');
+            }
+            
+            updateScore();
+            isQuestionActive = false;
+        }
+
+        // 新しい問題を生成
+        function newQuestion() {
+            if (isQuestionActive) {
+                clearPreviousAnswer();
+                stopTimer();
+            }
+
+            const randomCol = iroha[Math.floor(Math.random() * iroha.length)];
+            const randomRow = numbers[Math.floor(Math.random() * numbers.length)];
+            
+            currentAnswer = { col: randomCol, row: randomRow };
+            
+            document.getElementById('question').textContent = `「${randomCol}${randomRow}」はどこ？`;
+            document.getElementById('message').textContent = '';
+            
+            isQuestionActive = true;
+            startTimer();
+        }
+
+        // セルクリックの処理
+        function handleCellClick(col, row, cellElement) {
+            if (!isQuestionActive) {
+                document.getElementById('message').innerHTML = 
+                    '<span class="error">まず「新しい問題」をクリックしてください！</span>';
+                return;
+            }
+
+            stopTimer();
+            clearPreviousAnswer();
+
+            if (col === currentAnswer.col && row === currentAnswer.row) {
+                // 正解
+                cellElement.classList.add('correct');
+                correctCount++;
+                const difficulty = difficulties[currentDifficulty];
+                let message = '🎉 正解です！';
+                if (difficulty.timeLimit > 0) {
+                    const timeTaken = difficulty.timeLimit - timeRemaining;
+                    message += ` (${timeTaken}秒)`;
+                }
+                document.getElementById('message').innerHTML = 
+                    '<span class="success">' + message + '</span>';
+            } else {
+                // 不正解
+                cellElement.classList.add('wrong');
+                wrongCount++;
+                document.getElementById('message').innerHTML = 
+                    '<span class="error">❌ 不正解です。正解は「' + 
+                    currentAnswer.col + currentAnswer.row + '」です。</span>';
+                
+                // 正解のセルも表示
+                const correctCell = document.querySelector(
+                    `[data-col="${currentAnswer.col}"][data-row="${currentAnswer.row}"]`
+                );
+                if (correctCell) {
+                    setTimeout(() => {
+                        correctCell.classList.add('correct');
+                    }, 500);
+                }
+            }
+
+            updateScore();
+            isQuestionActive = false;
+        }
+
+        // 前の回答をクリア
+        function clearPreviousAnswer() {
+            document.querySelectorAll('.cell').forEach(cell => {
+                cell.classList.remove('correct', 'wrong');
+            });
+        }
+
+        // スコア更新
+        function updateScore() {
+            document.getElementById('correct').textContent = correctCount;
+            document.getElementById('wrong').textContent = wrongCount;
+            
+            const total = correctCount + wrongCount;
+            const rate = total > 0 ? Math.round((correctCount / total) * 100) : 0;
+            document.getElementById('rate').textContent = rate + '%';
+        }
+
+        // 難易度設定
+        function setDifficulty(level) {
+            // アクティブボタンの更新
+            document.querySelectorAll('.difficulty-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+            
+            currentDifficulty = level;
+            const difficulty = difficulties[level];
+            
+            // 難易度情報の更新
+            document.getElementById('difficultyInfo').textContent = difficulty.info;
+            
+            // ゲームリセット
+            resetScore();
+            createGrid();
+        }
+
+        // スコアリセット
+        function resetScore() {
+            correctCount = 0;
+            wrongCount = 0;
+            isQuestionActive = false;
+            stopTimer();
+            updateScore();
+            clearPreviousAnswer();
+            document.getElementById('question').textContent = '「新しい問題」をクリックして開始！';
+            document.getElementById('message').textContent = '';
+            
+            // タイマー表示リセット
+            const timerElement = document.getElementById('timer');
+            timerElement.textContent = '--:--';
+            timerElement.className = 'timer-display';
+        }
+
+        // 画面サイズ変更時の対応
+        let resizeTimer;
+        window.addEventListener('resize', function() {
+            clearTimeout(resizeTimer);
+            resizeTimer = setTimeout(function() {
+                if (!isQuestionActive) {
+                    createGrid();
+                }
+            }, 250);
+        });
+
+        // 初期化
+        window.onload = function() {
+            createGrid();
+            updateScore();
+        };
+    </script>
+</body>
+</html>
